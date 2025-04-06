@@ -1,0 +1,8 @@
+prefix=/workspace/devel/.private/algop_sim
+
+Name: algop_sim
+Description: Description of algop_sim
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: ros_control ros_controllers gazebo_ros_control

@@ -1,0 +1,47 @@
+<launch>
+    <!-- Запуск scan_to_tf ноды -->
+    <node name="scan_to_tf" pkg="algop_sim" type="scan_to_tf.py"
+        output="screen">
+    </node>
+
+    <!-- Загрузка робота в сервер параметров  -->
+    <param name="robot_description"
+        command="xacro '$(find algop_sim)/urdf/robot.urdf.xacro'" />
+
+    <!-- Запуск Gazebo -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="world_name" value="$(find algop_sim)/worlds/empty2.world" />
+        <arg name="paused" value="false" />
+        <arg name="use_sim_time" value="true" />
+        <arg name="gui" value="true" />
+        <arg name="headless" value="false" />
+        <arg name="debug" value="false" />
+    </include>
+
+    <!-- Запуск паблишеров ТФ-ок-->
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+        <param name="publish_frequency" type="double" value="100.0" />
+    </node>
+
+    <!-- Спавн робота -->
+    <node name="my_world_model_spawn" pkg="gazebo_ros" type="spawn_model"
+        args="-sdf -param world_description -model model">
+    </node>
+    <node name="my_robot_model_spawn" pkg="gazebo_ros" type="spawn_model"
+        args="-urdf -param robot_description -model robot">
+    </node>
+
+    <!-- Запуск RViz -->
+    <arg name="rviz_config" default="$(find algop_sim)/config/nav.rviz" />
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rviz_config)" />
+
+    <!-- Запуск рулёжки с клавиатуры -->
+    <node pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py"
+        name="teleop_twist_keyboard"
+        output="screen">
+        <remap from="/cmd_vel" to="/cmd_vel" />
+    </node>
+
+
+</launch>

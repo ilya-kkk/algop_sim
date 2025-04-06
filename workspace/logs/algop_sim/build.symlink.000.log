@@ -1,0 +1,3 @@
+Symlinking /workspace/devel/share/algop_sim/cmake/algop_simConfig.cmake
+Symlinking /workspace/devel/share/algop_sim/cmake/algop_simConfig-version.cmake
+Symlinking /workspace/devel/lib/pkgconfig/algop_sim.pc
