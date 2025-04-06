@@ -1,8 +1,14 @@
 <launch>
-    <!-- Запуск scan_to_tf ноды -->
+    <!-- Наши ноды -->
     <node name="scan_to_tf" pkg="algop_sim" type="scan_to_tf.py"
         output="screen">
     </node>
+
+    <node name="slam" pkg="algop_sim" type="slam.py"
+        output="screen">
+    </node>
+
+
 
     <!-- Загрузка робота в сервер параметров  -->
     <param name="robot_description"
