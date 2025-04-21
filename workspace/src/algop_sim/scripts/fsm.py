@@ -10,13 +10,26 @@ from geometry_msgs.msg import Twist
 from tf.transformations import euler_from_quaternion
 
 # Константы для управления
-LINEAR_SPEED = 1.2  # м/с
-ANGULAR_SPEED = 0.5  # рад/с
+LINEAR_SPEED = 0.5  # м/с
+ANGULAR_SPEED = 0.8  # рад/с
 DISTANCE_THRESHOLD = 0.5  # м
-ANGLE_THRESHOLD = math.pi/2  # 90 градусов
+ANGLE_THRESHOLD = -math.pi/2  # 90 градусов
 Y_THRESHOLD = 0.1  # м
 START_DELAY = 5.0  # Задержка перед стартом в секундах
 FINAL_DRIVE_TIME = 5.0  # Время финального движения вперёд
+
+# Константы для движения по кругу
+CIRCLE_TIME = 7.0  # Время движения по кругу в секундах
+CIRCLE_LINEAR_SPEED = 0.5  # м/с - линейная скорость при движении по кругу
+CIRCLE_ANGULAR_SPEED = 0.5  # рад/с - угловая скорость при движении по кругу
+
+def normalize_angle(angle):
+    """Нормализация угла в диапазон [-pi, pi]"""
+    while angle > math.pi:
+        angle -= 2.0 * math.pi
+    while angle < -math.pi:
+        angle += 2.0 * math.pi
+    return angle
 
 class DriveForward(smach.State):
     def __init__(self):
@@ -61,18 +74,23 @@ class TurnRight(smach.State):
         try:
             (_, rot) = self.tf_listener.lookupTransform('base_link', 'odom', rospy.Time(0))
             _, _, self.initial_yaw = euler_from_quaternion(rot)
+            self.initial_yaw = normalize_angle(self.initial_yaw)
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             rospy.logwarn('TF exception in TurnRight')
             return 'turned'
         
-        target_yaw = self.initial_yaw - ANGLE_THRESHOLD
+        target_yaw = normalize_angle(self.initial_yaw - ANGLE_THRESHOLD)
         
         while not rospy.is_shutdown():
             try:
                 (_, rot) = self.tf_listener.lookupTransform('base_link', 'odom', rospy.Time(0))
                 _, _, current_yaw = euler_from_quaternion(rot)
+                current_yaw = normalize_angle(current_yaw)
                 
-                if abs(current_yaw - target_yaw) < 0.1:
+                # Вычисление разницы углов
+                angle_diff = normalize_angle(target_yaw - current_yaw)
+                
+                if abs(angle_diff) < 0.1:
                     return 'turned'
                 
                 # Публикация команды поворота
@@ -89,37 +107,27 @@ class DriveCircle(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['circle_completed'])
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
-        self.tf_listener = tf.TransformListener()
-        self.initial_y = None
+        self.start_time = None
 
     def execute(self, userdata):
         rospy.loginfo('Executing state DRIVE_CIRCLE')
+        self.start_time = rospy.Time.now()
         rate = rospy.Rate(10)
         
-        # Получение начальной Y координаты
-        try:
-            (trans, _) = self.tf_listener.lookupTransform('base_link', 'odom', rospy.Time(0))
-            self.initial_y = trans[1]
-        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-            rospy.logwarn('TF exception in DriveCircle')
-            return 'circle_completed'
-        
         while not rospy.is_shutdown():
-            try:
-                (trans, _) = self.tf_listener.lookupTransform('base_link', 'odom', rospy.Time(0))
-                current_y = trans[1]
-                
-                if abs(current_y - self.initial_y) < Y_THRESHOLD:
-                    return 'circle_completed'
-                
-                # Публикация команды движения по кругу
+            elapsed = (rospy.Time.now() - self.start_time).to_sec()
+            
+            if elapsed >= CIRCLE_TIME:
+                # Остановка робота
                 cmd = Twist()
-                cmd.linear.x = LINEAR_SPEED
-                cmd.angular.z = ANGULAR_SPEED
                 self.cmd_vel_pub.publish(cmd)
-                
-            except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-                rospy.logwarn('TF exception in DriveCircle')
+                return 'circle_completed'
+            
+            # Публикация команды движения по кругу
+            cmd = Twist()
+            cmd.linear.x = CIRCLE_LINEAR_SPEED
+            cmd.angular.z = CIRCLE_ANGULAR_SPEED
+            self.cmd_vel_pub.publish(cmd)
             
             rate.sleep()
 
@@ -138,18 +146,23 @@ class TurnLeft(smach.State):
         try:
             (_, rot) = self.tf_listener.lookupTransform('base_link', 'odom', rospy.Time(0))
             _, _, self.initial_yaw = euler_from_quaternion(rot)
+            self.initial_yaw = normalize_angle(self.initial_yaw)
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             rospy.logwarn('TF exception in TurnLeft')
             return 'turned'
         
-        target_yaw = self.initial_yaw + ANGLE_THRESHOLD
+        target_yaw = normalize_angle(self.initial_yaw + ANGLE_THRESHOLD)
         
         while not rospy.is_shutdown():
             try:
                 (_, rot) = self.tf_listener.lookupTransform('base_link', 'odom', rospy.Time(0))
                 _, _, current_yaw = euler_from_quaternion(rot)
+                current_yaw = normalize_angle(current_yaw)
                 
-                if abs(current_yaw - target_yaw) < 0.1:
+                # Вычисление разницы углов
+                angle_diff = normalize_angle(target_yaw - current_yaw)
+                
+                if abs(angle_diff) < 0.1:
                     return 'turned'
                 
                 # Публикация команды поворота
@@ -206,10 +219,10 @@ def main():
                              remapping={})
         
         smach.StateMachine.add('DRIVE_CIRCLE', DriveCircle(),
-                             transitions={'circle_completed': 'TURN_LEFT'},
+                             transitions={'circle_completed': 'TURN_RIGHT_2'},
                              remapping={})
         
-        smach.StateMachine.add('TURN_LEFT', TurnLeft(),
+        smach.StateMachine.add('TURN_RIGHT_2', TurnRight(),
                              transitions={'turned': 'FINAL_DRIVE'},
                              remapping={})
         

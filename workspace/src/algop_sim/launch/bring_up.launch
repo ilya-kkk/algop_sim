@@ -12,7 +12,10 @@
         output="screen">
     </node>
 
-
+    <!-- Запуск визуализатора SMACH -->
+    <node name="smach_viewer" pkg="smach_viewer" type="smach_viewer.py"
+        output="screen">
+    </node>
 
     <!-- Загрузка робота в сервер параметров  -->
     <param name="robot_description"
@@ -52,6 +55,5 @@
         output="screen">
         <remap from="/cmd_vel" to="/cmd_vel" />
     </node>
-
 
 </launch>
