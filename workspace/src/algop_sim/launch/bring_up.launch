@@ -8,6 +8,10 @@
         output="screen">
     </node>
 
+    <node name="fsm" pkg="algop_sim" type="fsm.py"
+        output="screen">
+    </node>
+
 
 
     <!-- Загрузка робота в сервер параметров  -->

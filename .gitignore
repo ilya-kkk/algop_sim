@@ -1,0 +1,61 @@
+# Catkin build files
+build/
+devel/
+install/
+logs/
+.catkin_tools/
+
+# ROS specific files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.so
+*.dylib
+*.dll
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.log
+*.tmp
+*.bak
+*.backup
+*.orig
+*.rej
+
+# ROS bag files
+*.bag
+*.bag.active
+
+# ROS launch files
+*.launch
+*.test
+
+# ROS message files
+*.msg
+*.srv
+*.action
+
+# ROS parameter files
+*.yaml
+*.yml
+
+# ROS plugin files
+*.plugin.xml
+*.plugin.yaml
+
+# ROS documentation files
+*.rst
+*.md
+*.txt
+!README.md
